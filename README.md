@@ -37,7 +37,7 @@ It ensures that your live AWS environment matches your Terraform-defined infrast
 
 ---
 
-### 📂 Example Use Case
+### Example Use Case
 
 You're managing EC2 instances with Terraform. Someone changes the instance type or tags **manually via the AWS console**.  
 → `drift-checker` will detect that drift so you can fix it in code.
@@ -109,7 +109,7 @@ go run .
 
 ---
 
-## 🧰 Tools & Technologies Used
+## Tools & Technologies Used
 
 | Tool / Library                  | Purpose                                   |
 |---------------------------------|-------------------------------------------|
@@ -132,10 +132,10 @@ go run .
 ---
 
 ## Requirements Met
-•	✅ Go modules
-•	✅ Error handling + logging
-•	✅ Unit tests
-•	✅ Structured reports
-•	✅ Concurrency
-•	✅ CLI interface
-•	✅ README + usage examples
+1. [X] ✅ Go modules
+2. [X] ✅ Error handling + logging
+3. [x] ✅ Unit tests
+4. [ ] ✅ Structured reports
+5. [ ] ✅ Concurrency
+6. [ ] ✅ CLI interface
+7. [ ] ✅ README + usage examples
