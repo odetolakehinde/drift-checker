@@ -40,6 +40,10 @@ func GetInstanceFromClient(ctx context.Context, client EC2Client, instanceID str
 		return nil, fmt.Errorf("instance %s not found", instanceID)
 	}
 
+	//export AWS_ACCESS_KEY_ID=AKIAZG22WNABKUL6YBFY
+	//export AWS_SECRET_ACCESS_KEY=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
+	//export AWS_REGION=us-east-2
+
 	instance := output.Reservations[0].Instances[0]
 
 	// extract security groups (using GroupId as an identifier)
