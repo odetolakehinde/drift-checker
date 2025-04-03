@@ -34,7 +34,7 @@ func Run() {
 		Action: func(c *cli.Context) error {
 			ctx := context.Background()
 
-			// Prompt fallback: state-file
+			// check for state file. in case no state file is provided, do a fallback and ask the user
 			stateFile := c.String("state-file")
 			if stateFile == "" {
 				var err error
@@ -44,7 +44,7 @@ func Run() {
 				}
 			}
 
-			// Prompt fallback: instance-ids
+			// check for instance IDs. in case no instance IDs are provided, do a fallback and ask the user
 			instanceIDs := common.ParseCommaList(c.String("instance-ids"))
 			if len(instanceIDs) == 0 {
 				raw, err := promptInput("Enter comma-separated EC2 instance IDs")
@@ -64,13 +64,13 @@ func Run() {
 
 			outputJSON := c.Bool("json")
 
-			// Load Terraform
+			// time to parse the Terraform file
 			tfInstances, err := tf.ParseTerraformState(stateFile)
 			if err != nil {
 				return fmt.Errorf("failed to parse Terraform state: %w", err)
 			}
 
-			// Load AWS
+			// okay, let's get on AWS
 			var awsInstances []*common.EC2Instance
 			for _, id := range instanceIDs {
 				inst, err := aws.GetInstance(ctx, id)
@@ -81,10 +81,10 @@ func Run() {
 				awsInstances = append(awsInstances, inst)
 			}
 
-			// Perform concurrent comparison
+			// run all comparisons concurrently
 			results := engine.CompareAllInstances(awsInstances, tfInstances, attributeFilter)
 
-			// Print results
+			// show the results
 			for _, result := range results {
 				engine.PrintDriftReport(result, outputJSON)
 			}
@@ -99,7 +99,7 @@ func Run() {
 	}
 }
 
-// promptInput shows an interactive prompt
+// promptInput shows an interactive prompt on the CLI
 func promptInput(label string) (string, error) {
 	prompt := promptui.Prompt{Label: label}
 	value, err := prompt.Run()

@@ -50,7 +50,7 @@ func GetInstanceFromClient(ctx context.Context, client EC2Client, instanceID str
 		}
 	}
 
-	// Extract tags into a map for easier comparison.
+	// extract tags into a map for easier comparison.
 	tags := make(map[string]string)
 	for _, tag := range instance.Tags {
 		if tag.Key != nil && tag.Value != nil {
@@ -58,7 +58,7 @@ func GetInstanceFromClient(ctx context.Context, client EC2Client, instanceID str
 		}
 	}
 
-	// Extract block device mappings.
+	// extract block device mappings.
 	var bdms []common.BlockDeviceMapping
 	for _, mapping := range instance.BlockDeviceMappings {
 		var volumeID string
@@ -73,20 +73,20 @@ func GetInstanceFromClient(ctx context.Context, client EC2Client, instanceID str
 		}
 	}
 
-	// Check IAM Instance Profile if exists.
+	// check the IAM Instance Profile if it exists.
 	var iamProfile string
 	if instance.IamInstanceProfile != nil && instance.IamInstanceProfile.Arn != nil {
 		iamProfile = *instance.IamInstanceProfile.Arn
 	}
 
-	// Determine if detailed monitoring is enabled.
+	// check if detailed monitoring is enabled.
 	monitoringEnabled := false
 	if instance.Monitoring != nil && instance.Monitoring.State != "" {
 		monitoringEnabled = instance.Monitoring.State == "enabled"
 	}
 
-	// Determine the availability zone.
-	availabilityZone := ""
+	// check all the availability zone.
+	var availabilityZone string
 	if instance.Placement != nil && instance.Placement.AvailabilityZone != nil {
 		availabilityZone = *instance.Placement.AvailabilityZone
 	}

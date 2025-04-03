@@ -21,6 +21,7 @@ func CompareInstances(awsInst, tfInst *common.EC2Instance, filter map[string]boo
 		Differences: make(map[string]common.FieldDiff),
 	}
 
+	// shouldCompare helps to check whether we need to compare an attribute or not
 	shouldCompare := func(field string) bool {
 		return len(filter) == 0 || filter[field]
 	}
@@ -34,7 +35,7 @@ func CompareInstances(awsInst, tfInst *common.EC2Instance, filter map[string]boo
 		}
 	}
 
-	// Simple fields
+	// sort the string fields first
 	compare("instance_type", awsInst.InstanceType, tfInst.InstanceType)
 	compare("image_id", awsInst.ImageID, tfInst.ImageID)
 	compare("key_name", awsInst.KeyName, tfInst.KeyName)
@@ -45,12 +46,12 @@ func CompareInstances(awsInst, tfInst *common.EC2Instance, filter map[string]boo
 	compare("architecture", awsInst.Architecture, tfInst.Architecture)
 	compare("virtualization_type", awsInst.VirtualizationType, tfInst.VirtualizationType)
 
-	// Tags
+	// then, we do for the tags
 	if shouldCompare("tags") && !reflect.DeepEqual(awsInst.Tags, tfInst.Tags) {
 		compare("tags", awsInst.Tags, tfInst.Tags)
 	}
 
-	// Security groups
+	// time for security groups (SGs)
 	if shouldCompare("security_groups") {
 		awsSg := append([]string{}, awsInst.SecurityGroups...)
 		tfSg := append([]string{}, tfInst.SecurityGroups...)
@@ -61,7 +62,7 @@ func CompareInstances(awsInst, tfInst *common.EC2Instance, filter map[string]boo
 		}
 	}
 
-	// Block device mappings
+	// compare block device mappings
 	if shouldCompare("block_device_mappings") {
 		awsBdm := common.FlattenBlockDevices(awsInst.BlockDeviceMappings)
 		tfBdm := common.FlattenBlockDevices(tfInst.BlockDeviceMappings)
@@ -82,13 +83,13 @@ func CompareAllInstances(awsInstances []*common.EC2Instance, tfInstances []*comm
 	resultsCh := make(chan common.DriftResult)
 	var wg sync.WaitGroup
 
-	// Build a map from Terraform by InstanceID for quick lookup
+	// first, nice to build a map from Terraform by InstanceID for quick lookup
 	tfMap := make(map[string]*common.EC2Instance)
 	for _, tfInst := range tfInstances {
 		tfMap[tfInst.InstanceID] = tfInst
 	}
 
-	// Compare each AWS instance against its Terraform counterpart
+	// then, we compare each AWS instance against its Terraform counterpart
 	for _, awsInst := range awsInstances {
 		tfInst, ok := tfMap[awsInst.InstanceID]
 		if !ok {
@@ -114,13 +115,12 @@ func CompareAllInstances(awsInstances []*common.EC2Instance, tfInstances []*comm
 		}(awsInst, tfInst)
 	}
 
-	// Close the channel once all goroutines are done
+	// safe to close the channel once all goroutines are done
 	go func() {
 		wg.Wait()
 		close(resultsCh)
 	}()
 
-	// Collect results
 	for r := range resultsCh {
 		results = append(results, r)
 	}
@@ -144,7 +144,6 @@ func PrintDriftReport(result common.DriftResult, asJSON bool) {
 		return
 	}
 
-	// Human-readable format
 	header := fmt.Sprintf("Drift Report for Instance ID: %s", result.InstanceID)
 	fmt.Println(strings.Repeat("=", len(header)))
 	fmt.Println(header)
