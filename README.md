@@ -1,6 +1,6 @@
-# Drift Checker (Firefly Home Assignment)
+# Drift Checker
 
-This tool is a command-line tool that helps you detect **infrastructure drift** between what's deployed in **AWS EC2** and what is defined in your **Terraform configuration** (state file).
+This is a command-line tool that helps you detect **infrastructure drift** between what's deployed in **AWS EC2** and what is defined in your **Terraform configuration** (state file).
 
 It ensures that your live AWS environment matches your Terraform-defined infrastructure — a key part of keeping infrastructure-as-code (IaC) in sync.
 
