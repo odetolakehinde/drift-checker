@@ -124,18 +124,17 @@ go run .
 ---
 
 ## Future Improvements
-	•	Add support for HCL parsing (non-state)
-	•	Compare across multiple resource types
-	•	Export drift reports (CSV, HTML)
-	•	GitHub Actions for test + coverage badge
-
+* Add support for HCL parsing (non-state)
+* Compare across multiple resource types
+* Export drift reports (CSV, HTML)
+* GitHub Actions for test + coverage badge
 ---
 
 ## Requirements Met
-1. [X] ✅ Go modules
-2. [X] ✅ Error handling + logging
-3. [x] ✅ Unit tests
-4. [ ] ✅ Structured reports
-5. [ ] ✅ Concurrency
-6. [ ] ✅ CLI interface
-7. [ ] ✅ README + usage examples
+1. [x] Go modules
+2. [x] Error handling + logging
+3. [x] Unit tests
+4. [x] Structured reports
+5. [x] Concurrency
+6. [x] CLI interface
+7. [x] README + usage examples
