@@ -66,8 +66,8 @@ See examples in the `results` folder of this application to see how the results 
 ## 🚀 Installation
 
 ```bash
-git clone https://github.com/your-username/firefly-assessment.git
-cd firefly-assessment
+git clone https://github.com/odetolakehinde/drift-checker.git
+cd drift-checker
 go mod tidy
 ```
 
