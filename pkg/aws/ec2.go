@@ -29,6 +29,8 @@ func GetInstance(ctx context.Context, instanceID string) (*common.EC2Instance, e
 
 // GetInstanceFromClient retrieves the configuration of a specific EC2 instance
 func GetInstanceFromClient(ctx context.Context, client EC2Client, instanceID string) (*common.EC2Instance, error) {
+	// go run main.go --state-file=file/tf.tfstate --instance-ids=i-0846f159803a92a1a,i-0d7862461ee383cd8
+
 	output, err := client.DescribeInstances(ctx, &ec2.DescribeInstancesInput{
 		InstanceIds: []string{instanceID},
 	})

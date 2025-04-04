@@ -4,12 +4,14 @@ package engine
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"os"
 	"reflect"
 	"slices"
 	"sort"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/odetolakehinde/drift-checker/pkg/common"
 )
@@ -139,8 +141,31 @@ func PrintDriftReport(result common.DriftResult, asJSON bool) {
 		enc := json.NewEncoder(os.Stdout)
 		enc.SetIndent("", "  ")
 		if err := enc.Encode(result); err != nil {
-			_, _ = fmt.Fprintf(os.Stderr, "failed to encode drift report: %v\n", err)
+			log.Printf("failed to encode drift report: %v\n", err)
 		}
+
+		// let's also write to drift_<instance-id>_timestamp.json
+		fileName := fmt.Sprintf("results/drift_%s_%d.json", result.InstanceID, time.Now().Unix())
+		f, err := os.Create(fileName)
+		if err != nil {
+			log.Printf("❌ failed to write drift JSON to file: %v", err)
+			return
+		}
+		defer func(f *os.File) {
+			err = f.Close()
+			if err != nil {
+				return
+			}
+		}(f)
+
+		encFile := json.NewEncoder(f)
+		encFile.SetIndent("", "  ")
+		if err := encFile.Encode(result); err != nil {
+			log.Printf("❌failed to encode to file: %v\n", err)
+		} else {
+			fmt.Printf("JSON drift report written to: %s\n", fileName)
+		}
+
 		return
 	}
 

@@ -1,0 +1,156 @@
+{
+    "Reservations": [
+        {
+            "Groups": [],
+            "Instances": [
+                {
+                    "AmiLaunchIndex": 0,
+                    "ImageId": "ami-09694bfab577e90b0",
+                    "InstanceId": "i-0d7862461ee383cd8",
+                    "InstanceType": "t2.small",
+                    "KeyName": "redis",
+                    "LaunchTime": "2024-02-20T21:55:41+00:00",
+                    "Monitoring": {
+                        "State": "disabled"
+                    },
+                    "Placement": {
+                        "AvailabilityZone": "us-east-2b",
+                        "GroupName": "",
+                        "Tenancy": "default"
+                    },
+                    "PrivateDnsName": "ip-172-31-24-5.us-east-2.compute.internal",
+                    "PrivateIpAddress": "172.31.24.5",
+                    "ProductCodes": [],
+                    "PublicDnsName": "ec2-3-131-11-220.us-east-2.compute.amazonaws.com",
+                    "PublicIpAddress": "3.131.11.220",
+                    "State": {
+                        "Code": 80,
+                        "Name": "stopped"
+                    },
+                    "StateTransitionReason": "User initiated (2025-01-26 19:41:11 GMT)",
+                    "SubnetId": "subnet-0290ac36d8becb843",
+                    "VpcId": "vpc-0a64653532ba7c57c",
+                    "Architecture": "x86_64",
+                    "BlockDeviceMappings": [
+                        {
+                            "DeviceName": "/dev/xvda",
+                            "Ebs": {
+                                "AttachTime": "2024-01-26T17:01:34+00:00",
+                                "DeleteOnTermination": true,
+                                "Status": "attached",
+                                "VolumeId": "vol-066692e0ef5082ada"
+                            }
+                        }
+                    ],
+                    "ClientToken": "15b23b57-0b92-4eb9-ba21-9d6bd66e7c32",
+                    "EbsOptimized": false,
+                    "EnaSupport": true,
+                    "Hypervisor": "xen",
+                    "NetworkInterfaces": [
+                        {
+                            "Association": {
+                                "IpOwnerId": "633161017346",
+                                "PublicDnsName": "ec2-3-131-11-220.us-east-2.compute.amazonaws.com",
+                                "PublicIp": "3.131.11.220"
+                            },
+                            "Attachment": {
+                                "AttachTime": "2024-01-26T17:01:33+00:00",
+                                "AttachmentId": "eni-attach-0ef8aba28bd35f6da",
+                                "DeleteOnTermination": true,
+                                "DeviceIndex": 0,
+                                "Status": "attached",
+                                "NetworkCardIndex": 0
+                            },
+                            "Description": "",
+                            "Groups": [
+                                {
+                                    "GroupName": "launch-wizard-1",
+                                    "GroupId": "sg-0e02122af17691024"
+                                }
+                            ],
+                            "Ipv6Addresses": [],
+                            "MacAddress": "06:d1:21:95:ce:c3",
+                            "NetworkInterfaceId": "eni-0e615f0d09c16a989",
+                            "OwnerId": "633161017346",
+                            "PrivateDnsName": "ip-172-31-24-5.us-east-2.compute.internal",
+                            "PrivateIpAddress": "172.31.24.5",
+                            "PrivateIpAddresses": [
+                                {
+                                    "Association": {
+                                        "IpOwnerId": "633161017346",
+                                        "PublicDnsName": "ec2-3-131-11-220.us-east-2.compute.amazonaws.com",
+                                        "PublicIp": "3.131.11.220"
+                                    },
+                                    "Primary": true,
+                                    "PrivateDnsName": "ip-172-31-24-5.us-east-2.compute.internal",
+                                    "PrivateIpAddress": "172.31.24.5"
+                                }
+                            ],
+                            "SourceDestCheck": true,
+                            "Status": "in-use",
+                            "SubnetId": "subnet-0290ac36d8becb843",
+                            "VpcId": "vpc-0a64653532ba7c57c",
+                            "InterfaceType": "interface"
+                        }
+                    ],
+                    "RootDeviceName": "/dev/xvda",
+                    "RootDeviceType": "ebs",
+                    "SecurityGroups": [
+                        {
+                            "GroupName": "launch-wizard-1",
+                            "GroupId": "sg-0e02122af17691024"
+                        }
+                    ],
+                    "SourceDestCheck": true,
+                    "StateReason": {
+                        "Code": "Client.UserInitiatedShutdown",
+                        "Message": "Client.UserInitiatedShutdown: User initiated shutdown"
+                    },
+                    "Tags": [
+                        {
+                            "Key": "Name",
+                            "Value": "redis-server"
+                        }
+                    ],
+                    "VirtualizationType": "hvm",
+                    "CpuOptions": {
+                        "CoreCount": 1,
+                        "ThreadsPerCore": 1
+                    },
+                    "CapacityReservationSpecification": {
+                        "CapacityReservationPreference": "open"
+                    },
+                    "HibernationOptions": {
+                        "Configured": false
+                    },
+                    "MetadataOptions": {
+                        "State": "applied",
+                        "HttpTokens": "required",
+                        "HttpPutResponseHopLimit": 2,
+                        "HttpEndpoint": "enabled",
+                        "HttpProtocolIpv6": "disabled",
+                        "InstanceMetadataTags": "disabled"
+                    },
+                    "EnclaveOptions": {
+                        "Enabled": false
+                    },
+                    "BootMode": "uefi-preferred",
+                    "PlatformDetails": "Linux/UNIX",
+                    "UsageOperation": "RunInstances",
+                    "UsageOperationUpdateTime": "2024-01-26T17:01:33+00:00",
+                    "PrivateDnsNameOptions": {
+                        "HostnameType": "ip-name",
+                        "EnableResourceNameDnsARecord": true,
+                        "EnableResourceNameDnsAAAARecord": false
+                    },
+                    "MaintenanceOptions": {
+                        "AutoRecovery": "default"
+                    },
+                    "CurrentInstanceBootMode": "legacy-bios"
+                }
+            ],
+            "OwnerId": "633161017346",
+            "ReservationId": "r-0d9e9701bd9d45b0c"
+        }
+    ]
+}

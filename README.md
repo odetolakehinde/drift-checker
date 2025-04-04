@@ -40,7 +40,7 @@ It ensures that your live AWS environment matches your Terraform-defined infrast
 ### Example Use Case
 
 You're managing EC2 instances with Terraform. Someone changes the instance type or tags **manually via the AWS console**.  
-→ `drift-checker` will detect that drift so you can fix it in code.
+→ `drift-checker` will detect that drift so you can fix it.
 
 ---
 
@@ -67,7 +67,6 @@ You're managing EC2 instances with Terraform. Someone changes the instance type 
 git clone https://github.com/your-username/firefly-assessment.git
 cd firefly-assessment
 go mod tidy
-make run
 ```
 
 ---
@@ -81,7 +80,7 @@ You can authenticate by running this in your terminal:
 ```bash
 export AWS_ACCESS_KEY_ID=your-access-key
 export AWS_SECRET_ACCESS_KEY=your-secret-key
-export AWS_REGION=us-east-1
+export AWS_REGION=your-aws-region
 ```
 
 ---
@@ -92,11 +91,14 @@ export AWS_REGION=us-east-1
 
 ```bash
 go run . \
-  --state-file=terraform.tfstate \
-  --instance-ids=i-0123456789abcdef0 \
+  --state-file=file/tf.tfstate \
+  --instance-ids=id1,id2 \
   --attributes=instance_type,tags \
   --json
 ```
+
+_Replace `id1,id2` with your own comma seperated list of IDs. When the `-json` flag is added, the results are pasted in
+`results` folder with the format `drift_<instance-id>_timestamp.json`_
 
 ### ✅ Run interactively (omit flags)
 You’ll be prompted to input:
@@ -106,7 +108,14 @@ You’ll be prompted to input:
 ```bash
 go run .
 ```
-
+OR
+```bash
+make run-json
+```
+OR
+```bash
+make run
+```
 ---
 
 ## Tools & Technologies Used

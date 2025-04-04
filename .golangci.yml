@@ -1,4 +1,5 @@
 # https://github.com/golangci/golangci-lint#config-file
+version: '1.61.0'
 run:
   concurrency: 8
   timeout: 120s
@@ -6,18 +7,13 @@ run:
 linters: # Descriptions: https://github.com/golangci/awesome-go-linters
   # To see those enabled by default `golangci-lint help linters`
   enable: # These are disabled by default by golangci-lint
-#    - dogsled
+    - dogsled
     - gochecknoinits
     - goconst
-#    - godox
+    - errcheck
     - goimports
     - revive
-#    - gosec
+    - gosec
     - rowserrcheck
     - stylecheck
     - unparam
-linters-settings:
-  goimports:
-    local-prefixes: github.com/ovalfi
-issues:
-  exclude-use-default: false

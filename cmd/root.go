@@ -94,7 +94,7 @@ func Run() {
 	}
 
 	if err := app.Run(os.Args); err != nil {
-		fmt.Fprintln(os.Stderr, "❌", err)
+		log.Println("❌", err)
 		os.Exit(1)
 	}
 }
