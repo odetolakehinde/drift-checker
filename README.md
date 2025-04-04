@@ -42,6 +42,8 @@ It ensures that your live AWS environment matches your Terraform-defined infrast
 You're managing EC2 instances with Terraform. Someone changes the instance type or tags **manually via the AWS console**.  
 → `drift-checker` will detect that drift so you can fix it.
 
+See examples in the `results` folder of this application to see how the results are returned
+
 ---
 
 ## Features
@@ -98,10 +100,11 @@ go run . \
 ```
 
 _Replace `id1,id2` with your own comma seperated list of IDs. When the `-json` flag is added, the results are pasted in
-`results` folder with the format `drift_<instance-id>_timestamp.json`_
+`results` folder with the format `drift_<instance-id>_timestamp.json`. Also, replace `file/tf.tfstate` with the location 
+of your terraform state file_
 
 ### ✅ Run interactively (omit flags)
-You’ll be prompted to input:
+All the CLI commands are overwhelming? Ninja got you. Just run the code below and you’ll be prompted to input:
 - Path to the Terraform state file
 - One or more EC2 instance IDs
 
