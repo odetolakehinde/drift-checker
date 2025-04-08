@@ -2,6 +2,7 @@ package engine
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -9,8 +10,104 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
+
 	"github.com/odetolakehinde/drift-checker/pkg/common"
 )
+
+func TestCompareField(t *testing.T) {
+	out := make(map[string]common.FieldDiff)
+	compareField("instance_type", "t2.micro", "t2.small", nil, out)
+
+	assert.Len(t, out, 1)
+	assert.Equal(t, "t2.micro", out["instance_type"].AWS)
+	assert.Equal(t, "t2.small", out["instance_type"].Terraform)
+}
+
+func TestCompareField_Equal(t *testing.T) {
+	out := make(map[string]common.FieldDiff)
+	compareField("instance_type", "t2.micro", "t2.micro", nil, out)
+	assert.Empty(t, out)
+}
+
+func TestCompareSlice(t *testing.T) {
+	out := make(map[string]common.FieldDiff)
+	a := []string{"sg-123", "sg-456"}
+	b := []string{"sg-456", "sg-999"}
+
+	compareSlice("security_groups", a, b, nil, out)
+
+	assert.Len(t, out, 1)
+	assert.ElementsMatch(t, out["security_groups"].AWS.([]string), a)
+	assert.ElementsMatch(t, out["security_groups"].Terraform.([]string), b)
+}
+
+func TestCompareSlice_Equal(t *testing.T) {
+	out := make(map[string]common.FieldDiff)
+
+	compareSlice("security_groups", []string{"sg-1", "sg-2"}, []string{"sg-2", "sg-1"}, nil, out)
+
+	assert.Empty(t, out)
+}
+
+func TestCompareSlice_Diff(t *testing.T) {
+	out := make(map[string]common.FieldDiff)
+
+	compareSlice("security_groups", []string{"sg-1", "sg-2"}, []string{"sg-2", "sg-3"}, nil, out)
+
+	assert.Contains(t, out, "security_groups")
+	assert.ElementsMatch(t, out["security_groups"].AWS.([]string), []string{"sg-1", "sg-2"})
+	assert.ElementsMatch(t, out["security_groups"].Terraform.([]string), []string{"sg-2", "sg-3"})
+}
+
+func TestCompareSlice_Empty(t *testing.T) {
+	out := make(map[string]common.FieldDiff)
+
+	compareSlice("security_groups", []string{}, []string{}, nil, out)
+
+	assert.Empty(t, out)
+}
+
+func TestCompareSlice_Filtered(t *testing.T) {
+	out := make(map[string]common.FieldDiff)
+
+	filter := map[string]bool{"instance_type": true} // does not include this field
+	compareSlice("security_groups", []string{"sg-1"}, []string{"sg-2"}, filter, out)
+
+	assert.Empty(t, out)
+}
+func TestCompareMap_DiffDetected(t *testing.T) {
+	a := map[string]string{"Name": "redis", "Env": "prod"}
+	b := map[string]string{"Name": "redis", "Env": "dev"}
+
+	out := make(map[string]common.FieldDiff)
+	compareMap("tags", a, b, nil, out)
+
+	assert.Len(t, out, 1)
+	assert.Contains(t, out, "tags")
+	assert.True(t, reflect.DeepEqual(a, out["tags"].AWS))
+	assert.True(t, reflect.DeepEqual(b, out["tags"].Terraform))
+}
+
+func TestCompareMap_NoDiff(t *testing.T) {
+	a := map[string]string{"Name": "redis"}
+	b := map[string]string{"Name": "redis"}
+
+	out := make(map[string]common.FieldDiff)
+	compareMap("tags", a, b, nil, out)
+
+	assert.Len(t, out, 0)
+}
+
+func TestCompareMap_FilteredOut(t *testing.T) {
+	a := map[string]string{"Env": "prod"}
+	b := map[string]string{"Env": "staging"}
+
+	out := make(map[string]common.FieldDiff)
+	compareMap("tags", a, b, map[string]bool{"instance_type": true}, out)
+
+	assert.Len(t, out, 0)
+}
 
 func TestCompareInstances(t *testing.T) {
 	awsBase := &common.EC2Instance{
@@ -76,7 +173,7 @@ func TestCompareInstances(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := CompareInstances(tt.aws, tt.tf, tt.filter)
+			got := compareInstances(tt.aws, tt.tf, tt.filter)
 
 			if !reflect.DeepEqual(got.Differences, tt.wantDiff) {
 				t.Errorf("CompareInstances() differences = %v, want %v", got.Differences, tt.wantDiff)
@@ -97,7 +194,7 @@ func TestCompareAllInstances(t *testing.T) {
 
 	filter := map[string]bool{"instance_type": true}
 
-	results := CompareAllInstances(aws, tf, filter)
+	results := CompareAllInstances(context.Background(), aws, tf, filter)
 
 	if len(results) != 2 {
 		t.Fatalf("expected 2 results, got %d", len(results))
@@ -117,6 +214,17 @@ func TestCompareAllInstances(t *testing.T) {
 			t.Errorf("unexpected instance ID: %s", r.InstanceID)
 		}
 	}
+}
+
+func TestCompareAllInstances_Cancelled(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel() // immediately cancel
+
+	results := CompareAllInstances(ctx, []*common.EC2Instance{
+		{InstanceID: "i-123"},
+	}, []*common.EC2Instance{}, nil)
+
+	assert.LessOrEqual(t, len(results), 1)
 }
 
 func TestCloneInstance(t *testing.T) {

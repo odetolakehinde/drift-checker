@@ -2,26 +2,58 @@
 package terraform
 
 import (
+	"context"
 	"encoding/json"
-	"fmt"
 	"os"
+
+	"github.com/rs/zerolog"
 
 	"github.com/odetolakehinde/drift-checker/pkg/common"
 )
 
-// ParseTerraformState parses a Terraform state file and extracts EC2Instance values.
-func ParseTerraformState(stateFilePath string) ([]*common.EC2Instance, error) {
+// Parser defines a facade for Terraform state parsing.
+type Parser interface {
+	Load(path string) ([]*common.EC2Instance, error)
+}
+
+type stateParser struct {
+	logger zerolog.Logger
+}
+
+func NewParser(_ context.Context, logger zerolog.Logger) Parser {
+	return &stateParser{
+		logger: logger.With().Str(common.LogStrLayer, "terraform").Logger(),
+	}
+}
+
+func (p *stateParser) Load(path string) ([]*common.EC2Instance, error) {
+	log := p.logger.With().
+		Str(common.LogStrMethod, "Load - parseTerraformState").
+		Str("path", path).
+		Logger()
+	return parseTerraformState(log, path)
+}
+
+// parseTerraformState parses a Terraform state file and extracts EC2Instance values.
+func parseTerraformState(log zerolog.Logger, stateFilePath string) ([]*common.EC2Instance, error) {
 	data, err := os.ReadFile(stateFilePath)
 	if err != nil {
-		return nil, fmt.Errorf("failed to read state file: %w", err)
+		log.Err(err).Msg("failed to read state file")
+		return nil, common.ErrStateFileNotProvided
 	}
 
 	var state common.TerraformState
-	if err := json.Unmarshal(data, &state); err != nil {
-		return nil, fmt.Errorf("failed to unmarshal state file: %w", err)
+	if err = json.Unmarshal(data, &state); err != nil {
+		log.Err(err).Msg("unable to marshal or parse state file - it is invalid")
+		return nil, common.ErrInvalidStateFile
 	}
 
 	var instances []*common.EC2Instance
+
+	if len(state.Resources) == 0 {
+		log.Err(err).Msg("no terraform resources found in state file")
+		return nil, common.ErrTerraformInstanceMissing
+	}
 
 	for _, res := range state.Resources {
 		if res.Type != "aws_instance" {

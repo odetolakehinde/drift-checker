@@ -68,4 +68,9 @@ var (
 		"virtualization_type",
 		"block_device_mappings",
 	}
+
+	// LogStrLayer is string representation of the layer level in the logs
+	LogStrLayer = "layer"
+	// LogStrMethod is string representation of the methods in the logs
+	LogStrMethod = "method"
 )

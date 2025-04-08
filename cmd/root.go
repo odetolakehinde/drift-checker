@@ -3,12 +3,11 @@ package cmd
 
 import (
 	"context"
-	"fmt"
-	"log"
 	"os"
 	"strings"
 
 	"github.com/manifoldco/promptui"
+	"github.com/rs/zerolog"
 	"github.com/urfave/cli/v2"
 
 	"github.com/odetolakehinde/drift-checker/pkg/aws"
@@ -22,6 +21,19 @@ import (
 // It defines CLI flags, handles user input (with interactive prompts if flags are missing),
 // loads EC2 and Terraform data, and invokes the drift detection engine.
 func Run() {
+	ctx := context.Background()
+
+	// init the logger
+	logger := zerolog.New(os.Stderr).With().Timestamp().Str("app", "drift-checker").Logger()
+
+	// init all services.
+	tfSvc := tf.NewParser(ctx, logger)            // terraform service
+	ec2Svc, err := aws.NewEC2Service(ctx, logger) // aws service
+	if err != nil {
+		logger.Fatal().Err(err).Msg("failed to initialize aws service")
+		return
+	}
+
 	app := &cli.App{
 		Name:  "drift-checker",
 		Usage: "Detect drift between AWS EC2 instances and Terraform state",
@@ -32,24 +44,23 @@ func Run() {
 			&cli.BoolFlag{Name: "json", Usage: "Output drift result as JSON"},
 		},
 		Action: func(c *cli.Context) error {
-			ctx := context.Background()
-
 			// check for state file. in case no state file is provided, do a fallback and ask the user
 			stateFile := c.String("state-file")
 			if stateFile == "" {
-				var err error
 				stateFile, err = promptInput("Enter path to Terraform state file")
 				if err != nil {
-					return err
+					logger.Err(err).Msg("failed to prompt input")
+					return common.ErrStateFileNotProvided
 				}
 			}
 
 			// check for instance IDs. in case no instance IDs are provided, do a fallback and ask the user
 			instanceIDs := common.ParseCommaList(c.String("instance-ids"))
 			if len(instanceIDs) == 0 {
-				raw, err := promptInput("Enter comma-separated EC2 instance IDs")
+				var raw string
+				raw, err = promptInput("Enter comma-separated EC2 instance IDs")
 				if err != nil {
-					return err
+					return common.ErrNoInstanceIDs
 				}
 				instanceIDs = common.ParseCommaList(raw)
 			}
@@ -65,24 +76,25 @@ func Run() {
 			outputJSON := c.Bool("json")
 
 			// time to parse the Terraform file
-			tfInstances, err := tf.ParseTerraformState(stateFile)
+			tfInstances, err := tfSvc.Load(stateFile)
 			if err != nil {
-				return fmt.Errorf("failed to parse Terraform state: %w", err)
+				logger.Err(err).Msg("failed to load state file")
+				return err
 			}
 
 			// okay, let's get on AWS
 			var awsInstances []*common.EC2Instance
 			for _, id := range instanceIDs {
-				inst, err := aws.GetInstance(ctx, id)
+				inst, err := ec2Svc.GetInstance(ctx, id)
 				if err != nil {
-					log.Printf("warning: could not retrieve AWS instance %s: %v", id, err)
+					logger.Err(err).Msgf("warning: could not retrieve AWS instance %s: %v", id, err)
 					continue
 				}
 				awsInstances = append(awsInstances, inst)
 			}
 
 			// run all comparisons concurrently
-			results := engine.CompareAllInstances(awsInstances, tfInstances, attributeFilter)
+			results := engine.CompareAllInstances(context.Background(), awsInstances, tfInstances, attributeFilter)
 
 			// show the results
 			for _, result := range results {
@@ -94,8 +106,7 @@ func Run() {
 	}
 
 	if err := app.Run(os.Args); err != nil {
-		log.Println("❌", err)
-		os.Exit(1)
+		logger.Fatal().Err(err).Msg("failed to run app")
 	}
 }
 
@@ -104,7 +115,8 @@ func promptInput(label string) (string, error) {
 	prompt := promptui.Prompt{Label: label}
 	value, err := prompt.Run()
 	if err != nil {
-		return "", fmt.Errorf("prompt error: %w", err)
+		return "", common.ErrPromptFailed
 	}
+
 	return strings.TrimSpace(value), nil
 }

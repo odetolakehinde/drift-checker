@@ -3,7 +3,6 @@ package aws
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/ec2"
@@ -17,29 +16,36 @@ type EC2Client interface {
 }
 
 // GetInstance retrieves the configuration of an EC2 instance by its ID.
-func GetInstance(ctx context.Context, instanceID string) (*common.EC2Instance, error) {
+func (s *ec2Service) GetInstance(ctx context.Context, instanceID string) (*common.EC2Instance, error) {
+	log := s.logger.With().Str(common.LogStrMethod, "GetInstance").Logger()
+
 	cfg, err := config.LoadDefaultConfig(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("loading config: %w", err)
+		log.Err(err).Msg("failed to load AWS config")
+		return nil, common.ErrConfigLoadFailure
 	}
 
 	client := ec2.NewFromConfig(cfg)
-	return GetInstanceFromClient(ctx, client, instanceID)
+	return s.GetInstanceFromClient(ctx, client, instanceID)
 }
 
 // GetInstanceFromClient retrieves the configuration of a specific EC2 instance
-func GetInstanceFromClient(ctx context.Context, client EC2Client, instanceID string) (*common.EC2Instance, error) {
+func (s *ec2Service) GetInstanceFromClient(ctx context.Context, client EC2Client, instanceID string) (*common.EC2Instance, error) {
+	log := s.logger.With().Str(common.LogStrMethod, "GetInstanceFromClient").Logger()
+
 	// go run main.go --state-file=file/tf.tfstate --instance-ids=i-0846f159803a92a1a,i-0d7862461ee383cd8
 
 	output, err := client.DescribeInstances(ctx, &ec2.DescribeInstancesInput{
 		InstanceIds: []string{instanceID},
 	})
 	if err != nil {
-		return nil, fmt.Errorf("describe instances: %w", err)
+		log.Err(err).Msg("failed to describe instances")
+		return nil, common.ErrAWSDescribeFailure
 	}
 
 	if len(output.Reservations) == 0 || len(output.Reservations[0].Instances) == 0 {
-		return nil, fmt.Errorf("instance %s not found", instanceID)
+		log.Err(err).Msg("no instances found")
+		return nil, common.ErrInstanceNotFound
 	}
 
 	instance := output.Reservations[0].Instances[0]

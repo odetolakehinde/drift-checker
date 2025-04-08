@@ -1,6 +1,7 @@
 package common
 
 import (
+	"github.com/stretchr/testify/assert"
 	"reflect"
 	"testing"
 )
@@ -240,4 +241,11 @@ func TestToMap(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestGetStringPointer(t *testing.T) {
+	ptr := GetStringPointer("test")
+
+	assert.NotNil(t, ptr)
+	assert.Equal(t, "test", *ptr)
 }

@@ -2,6 +2,7 @@
 package engine
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -17,7 +18,7 @@ import (
 )
 
 // CompareInstances detects drift between an EC2 instance from AWS and Terraform state.
-func CompareInstances(awsInst, tfInst *common.EC2Instance, filter map[string]bool) common.DriftResult {
+func compareInstances(awsInst, tfInst *common.EC2Instance, filter map[string]bool) common.DriftResult {
 	result := common.DriftResult{
 		InstanceID:  awsInst.InstanceID,
 		Differences: make(map[string]common.FieldDiff),
@@ -28,29 +29,20 @@ func CompareInstances(awsInst, tfInst *common.EC2Instance, filter map[string]boo
 		return len(filter) == 0 || filter[field]
 	}
 
-	compare := func(field string, a, b any) {
-		if shouldCompare(field) && !reflect.DeepEqual(a, b) {
-			result.Differences[field] = common.FieldDiff{
-				AWS:       a,
-				Terraform: b,
-			}
-		}
-	}
-
 	// sort the string fields first
-	compare("instance_type", awsInst.InstanceType, tfInst.InstanceType)
-	compare("image_id", awsInst.ImageID, tfInst.ImageID)
-	compare("key_name", awsInst.KeyName, tfInst.KeyName)
-	compare("subnet_id", awsInst.SubnetID, tfInst.SubnetID)
-	compare("vpc_id", awsInst.VpcID, tfInst.VpcID)
-	compare("iam_instance_profile", awsInst.IamInstanceProfile, tfInst.IamInstanceProfile)
-	compare("monitoring", awsInst.Monitoring, tfInst.Monitoring)
-	compare("architecture", awsInst.Architecture, tfInst.Architecture)
-	compare("virtualization_type", awsInst.VirtualizationType, tfInst.VirtualizationType)
+	compareField("instance_type", awsInst.InstanceType, tfInst.InstanceType, filter, result.Differences)
+	compareField("image_id", awsInst.ImageID, tfInst.ImageID, filter, result.Differences)
+	compareField("key_name", awsInst.KeyName, tfInst.KeyName, filter, result.Differences)
+	compareField("subnet_id", awsInst.SubnetID, tfInst.SubnetID, filter, result.Differences)
+	compareField("vpc_id", awsInst.VpcID, tfInst.VpcID, filter, result.Differences)
+	compareField("iam_instance_profile", awsInst.IamInstanceProfile, tfInst.IamInstanceProfile, filter, result.Differences)
+	compareField("monitoring", awsInst.Monitoring, tfInst.Monitoring, filter, result.Differences)
+	compareField("architecture", awsInst.Architecture, tfInst.Architecture, filter, result.Differences)
+	compareField("virtualization_type", awsInst.VirtualizationType, tfInst.VirtualizationType, filter, result.Differences)
 
 	// then, we do for the tags
 	if shouldCompare("tags") && !reflect.DeepEqual(awsInst.Tags, tfInst.Tags) {
-		compare("tags", awsInst.Tags, tfInst.Tags)
+		compareMap("tags", awsInst.Tags, tfInst.Tags, filter, result.Differences)
 	}
 
 	// time for security groups (SGs)
@@ -60,7 +52,7 @@ func CompareInstances(awsInst, tfInst *common.EC2Instance, filter map[string]boo
 		sort.Strings(awsSg)
 		sort.Strings(tfSg)
 		if !slices.Equal(awsSg, tfSg) {
-			compare("security_groups", awsSg, tfSg)
+			compareSlice("security_groups", awsSg, tfSg, filter, result.Differences)
 		}
 	}
 
@@ -71,7 +63,7 @@ func CompareInstances(awsInst, tfInst *common.EC2Instance, filter map[string]boo
 		sort.Strings(awsBdm)
 		sort.Strings(tfBdm)
 		if !slices.Equal(awsBdm, tfBdm) {
-			compare("block_device_mappings", awsBdm, tfBdm)
+			compareSlice("block_device_mappings", awsBdm, tfBdm, filter, result.Differences)
 		}
 	}
 
@@ -79,50 +71,132 @@ func CompareInstances(awsInst, tfInst *common.EC2Instance, filter map[string]boo
 	return result
 }
 
-// CompareAllInstances compares multiple EC2 instances from AWS and Terraform concurrently.
-func CompareAllInstances(awsInstances []*common.EC2Instance, tfInstances []*common.EC2Instance, filter map[string]bool) []common.DriftResult {
-	results := make([]common.DriftResult, 0)
-	resultsCh := make(chan common.DriftResult)
-	var wg sync.WaitGroup
+// compareField performs a type-safe equality check between two values of comparable type T.
+// If the specified field is included in the comparison filter (or no filter is set),
+// and the values differ, the difference is added to the output map.
+func compareField[T comparable](field string, a, b T, filter map[string]bool, out map[string]common.FieldDiff) {
+	if len(filter) > 0 && !filter[field] {
+		return
+	}
 
-	// first, nice to build a map from Terraform by InstanceID for quick lookup
+	if a != b {
+		out[field] = common.FieldDiff{
+			AWS:       a,
+			Terraform: b,
+		}
+	}
+}
+
+// compareMap checks for equality between two string maps and adds a diff if they differ.
+// This avoids unnecessary drift comparison for fields that are not filtered.
+func compareMap(field string, a, b map[string]string, filter map[string]bool, out map[string]common.FieldDiff) {
+	if len(filter) > 0 && !filter[field] {
+		return
+	}
+	if !reflect.DeepEqual(a, b) {
+		out[field] = common.FieldDiff{AWS: a, Terraform: b}
+	}
+}
+
+// compareSlice compares two slices of strings for equality regardless of order.
+// If the specified field is included in the comparison filter (or no filter is set),
+// and the sorted slices differ, the difference is added to the output map.
+func compareSlice(field string, a, b []string, filter map[string]bool, out map[string]common.FieldDiff) {
+	if len(filter) > 0 && !filter[field] {
+		return
+	}
+
+	sa := append([]string(nil), a...)
+	sb := append([]string(nil), b...)
+	sort.Strings(sa)
+	sort.Strings(sb)
+
+	if !slices.Equal(sa, sb) {
+		out[field] = common.FieldDiff{
+			AWS:       sa,
+			Terraform: sb,
+		}
+	}
+}
+
+// CompareAllInstances performs concurrent drift comparison between AWS and Terraform EC2 instances.
+//
+// It uses a bounded worker pool to limit memory and CPU usage,
+// and respects context cancellation (e.g., timeouts or user interrupts).
+//
+// Parameters:
+//   - ctx: context to support cancellation
+//   - awsInstances: instances fetched from AWS
+//   - tfInstances: instances parsed from Terraform state
+//   - filter: a map of field names to check for drift
+//
+// Returns:
+//   - []DriftResult containing drift reports per instance (only meaningful results)
+func CompareAllInstances(ctx context.Context, awsInstances []*common.EC2Instance, tfInstances []*common.EC2Instance, filter map[string]bool) []common.DriftResult {
+	const maxWorkers = 10
+
+	results := make([]common.DriftResult, 0, len(awsInstances))
+	resultsCh := make(chan common.DriftResult)
+	tasks := make(chan *common.EC2Instance)
+
+	// Build a map for quick lookup
 	tfMap := make(map[string]*common.EC2Instance)
 	for _, tfInst := range tfInstances {
 		tfMap[tfInst.InstanceID] = tfInst
 	}
 
-	// then, we compare each AWS instance against its Terraform counterpart
-	for _, awsInst := range awsInstances {
-		tfInst, ok := tfMap[awsInst.InstanceID]
-		if !ok {
-			// Instance exists in AWS but not in Terraform
-			results = append(results, common.DriftResult{
-				InstanceID:    awsInst.InstanceID,
-				DriftDetected: true,
-				Differences: map[string]common.FieldDiff{
-					"terraform": {
-						AWS:       "exists",
-						Terraform: "missing",
-					},
-				},
-			})
-			continue
-		}
+	var wg sync.WaitGroup
 
+	// Start bounded worker pool
+	for i := 0; i < maxWorkers; i++ {
 		wg.Add(1)
-		go func(aInst *common.EC2Instance, tInst *common.EC2Instance) {
+		go func() {
 			defer wg.Done()
-			result := CompareInstances(aInst, tInst, filter)
-			resultsCh <- result
-		}(awsInst, tfInst)
+			for {
+				select {
+				case <-ctx.Done():
+					return
+				case awsInst, ok := <-tasks:
+					if !ok {
+						return
+					}
+					tfInst, ok := tfMap[awsInst.InstanceID]
+					if !ok {
+						resultsCh <- common.DriftResult{
+							InstanceID:    awsInst.InstanceID,
+							DriftDetected: true,
+							Differences: map[string]common.FieldDiff{
+								"terraform_state": {
+									AWS:       "exists",
+									Terraform: "missing",
+								},
+							},
+						}
+						continue
+					}
+
+					drift := compareInstances(awsInst, tfInst, filter)
+					resultsCh <- drift
+				}
+			}
+		}()
 	}
 
-	// safe to close the channel once all goroutines are done
+	// Feed tasks
+	go func() {
+		for _, awsInst := range awsInstances {
+			tasks <- awsInst
+		}
+		close(tasks)
+	}()
+
+	// Close results when all workers complete
 	go func() {
 		wg.Wait()
 		close(resultsCh)
 	}()
 
+	// Collect results
 	for r := range resultsCh {
 		results = append(results, r)
 	}

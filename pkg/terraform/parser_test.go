@@ -4,6 +4,7 @@ import (
 	"os"
 	"testing"
 
+	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/odetolakehinde/drift-checker/pkg/common"
@@ -106,7 +107,7 @@ func TestParseTerraformState(t *testing.T) {
 				return
 			}
 
-			got, err := ParseTerraformState(tmpFile.Name())
+			got, err := parseTerraformState(zerolog.Nop(), tmpFile.Name())
 			if tt.wantErr {
 				assert.Error(t, err)
 			} else {
