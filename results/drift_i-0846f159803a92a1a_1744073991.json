@@ -1,0 +1,55 @@
+{
+  "instance_id": "i-0846f159803a92a1a",
+  "drift_detected": true,
+  "differences": {
+    "block_device_mappings": {
+      "aws": [
+        "/dev/xvda|vol-04db4c4babf9d0fbc"
+      ],
+      "terraform": [
+        "/dev/xvda|vol-0123456789abcdef0"
+      ]
+    },
+    "iam_instance_profile": {
+      "aws": "",
+      "terraform": "my-iam-role"
+    },
+    "image_id": {
+      "aws": "ami-0ed8ded998040507d",
+      "terraform": "ami-0846f159803a92a1a"
+    },
+    "instance_type": {
+      "aws": "t3a.small",
+      "terraform": "t2.micro"
+    },
+    "key_name": {
+      "aws": "wp",
+      "terraform": "my-keypair"
+    },
+    "monitoring": {
+      "aws": false,
+      "terraform": true
+    },
+    "security_groups": {
+      "aws": [
+        "sg-0e02122af17691024"
+      ],
+      "terraform": [
+        "sg-0a1b2c3d4e5f6g7h"
+      ]
+    },
+    "subnet_id": {
+      "aws": "subnet-03562f12adf800a58",
+      "terraform": "subnet-0abcde1234567890"
+    },
+    "tags": {
+      "aws": {
+        "Name": "wp-dev"
+      },
+      "terraform": {
+        "Env": "dev",
+        "Name": "drift-checker"
+      }
+    }
+  }
+}
